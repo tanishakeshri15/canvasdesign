@@ -1,23 +1,17 @@
 import React from 'react'
 
-function RectLayerIcon() {
-  return (
+function getIcon(type) {
+  if (type === 'rect') return (
     <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
       <rect x="2" y="3" width="10" height="8" rx="1"/>
     </svg>
   )
-}
-
-function TextLayerIcon() {
-  return (
+  if (type === 'text') return (
     <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
       <line x1="7" y1="2" x2="7" y2="12"/>
       <line x1="2" y1="2" x2="12" y2="2"/>
     </svg>
   )
-}
-
-function ImageLayerIcon() {
   return (
     <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
       <rect x="2" y="2" width="10" height="10" rx="1"/>
@@ -27,22 +21,6 @@ function ImageLayerIcon() {
   )
 }
 
-function TrashIcon() {
-  return (
-    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <polyline points="2 3 10 3"/>
-      <path d="M4 3V2h4v1"/>
-      <path d="M3 3l.7 7h4.6L9 3"/>
-    </svg>
-  )
-}
-
-function getIcon(type) {
-  if (type === 'rect') return <RectLayerIcon />
-  if (type === 'text') return <TextLayerIcon />
-  return <ImageLayerIcon />
-}
-
 function getLabel(element, index) {
   if (element.type === 'text') return element.content?.slice(0, 16) || `Text ${index + 1}`
   if (element.type === 'rect') return `Rectangle ${index + 1}`
@@ -50,14 +28,11 @@ function getLabel(element, index) {
 }
 
 export default function LayersPanel({ elements, selectedId, onSelect, onDelete }) {
-  const reversed = [...elements].reverse()
-
   return (
     <div className="left-panel">
       <div className="panel-section">
         <div className="panel-section-title">Layers · {elements.length}</div>
       </div>
-
       <div className="layers-list">
         {elements.length === 0 ? (
           <div className="empty-layers">
@@ -69,7 +44,7 @@ export default function LayersPanel({ elements, selectedId, onSelect, onDelete }
             <div className="empty-layers-text">No elements yet.<br/>Use the toolbar to add some.</div>
           </div>
         ) : (
-          reversed.map((el, i) => (
+          [...elements].reverse().map((el, i) => (
             <div
               key={el.id}
               className={`layer-item${el.id === selectedId ? ' selected' : ''}`}
@@ -82,7 +57,11 @@ export default function LayersPanel({ elements, selectedId, onSelect, onDelete }
                 onClick={(e) => { e.stopPropagation(); onDelete(el.id) }}
                 title="Delete"
               >
-                <TrashIcon />
+                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <polyline points="2 3 10 3"/>
+                  <path d="M4 3V2h4v1"/>
+                  <path d="M3 3l.7 7h4.6L9 3"/>
+                </svg>
               </button>
             </div>
           ))

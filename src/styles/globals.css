@@ -25,7 +25,6 @@
   --font-sans: 'DM Sans', sans-serif;
   --font-mono: 'DM Mono', monospace;
   --shadow-panel: 0 4px 24px rgba(0, 0, 0, 0.5);
-  --shadow-element: 0 2px 12px rgba(0, 0, 0, 0.4);
   --radius: 10px;
   --radius-sm: 6px;
 }
@@ -55,13 +54,6 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--border-light);
-  border-radius: 3px;
-}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }

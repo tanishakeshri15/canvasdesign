@@ -24,8 +24,6 @@ function TextContent({ element, isSelected, onTextChange }) {
     setEditing(true)
   }
 
-  const handleBlur = () => setEditing(false)
-
   if (editing) {
     return (
       <div className="element-text editing">
@@ -35,7 +33,7 @@ function TextContent({ element, isSelected, onTextChange }) {
           autoFocus
           onBlur={(e) => {
             onTextChange(element.id, e.target.value)
-            handleBlur()
+            setEditing(false)
           }}
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
@@ -59,11 +57,6 @@ function ImageContent({ element }) {
   const [imgSrc, setImgSrc] = useState(element.src || null)
   const inputRef = useRef()
 
-  const handleClick = (e) => {
-    e.stopPropagation()
-    inputRef.current?.click()
-  }
-
   const handleFile = (e) => {
     const file = e.target.files[0]
     if (!file) return
@@ -81,7 +74,7 @@ function ImageContent({ element }) {
   }
 
   return (
-    <div className="element-image" onDoubleClick={handleClick}>
+    <div className="element-image" onDoubleClick={() => inputRef.current?.click()}>
       <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
       <div className="element-image-placeholder">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -103,20 +96,15 @@ export default function Element({
   onTextChange,
   canvasRef,
   snapToGrid,
-  allElements,
   onContextMenu,
 }) {
   const dragStart = useRef(null)
   const resizeStart = useRef(null)
-
   const GRID = 10
 
-  const getSnapPosition = useCallback((x, y) => {
+  const getSnap = useCallback((x, y) => {
     if (!snapToGrid) return { x, y }
-    return {
-      x: Math.round(x / GRID) * GRID,
-      y: Math.round(y / GRID) * GRID,
-    }
+    return { x: Math.round(x / GRID) * GRID, y: Math.round(y / GRID) * GRID }
   }, [snapToGrid])
 
   const handleMouseDown = (e) => {
@@ -124,7 +112,6 @@ export default function Element({
     e.stopPropagation()
     onSelect(element.id)
 
-    const canvasRect = canvasRef.current.getBoundingClientRect()
     dragStart.current = {
       mouseX: e.clientX,
       mouseY: e.clientY,
@@ -137,14 +124,9 @@ export default function Element({
     const onMove = (ev) => {
       const dx = ev.clientX - dragStart.current.mouseX
       const dy = ev.clientY - dragStart.current.mouseY
-      let newX = dragStart.current.origX + dx
-      let newY = dragStart.current.origY + dy
-
-      // Clamp to canvas
-      newX = Math.max(0, Math.min(newX, dragStart.current.canvasW - element.width))
-      newY = Math.max(0, Math.min(newY, dragStart.current.canvasH - element.height))
-
-      const snapped = getSnapPosition(newX, newY)
+      let newX = Math.max(0, Math.min(dragStart.current.origX + dx, dragStart.current.canvasW - element.width))
+      let newY = Math.max(0, Math.min(dragStart.current.origY + dy, dragStart.current.canvasH - element.height))
+      const snapped = getSnap(newX, newY)
       onUpdate(element.id, { x: snapped.x, y: snapped.y })
     }
 
@@ -165,6 +147,7 @@ export default function Element({
 
     const canvasW = canvasRef.current.offsetWidth
     const canvasH = canvasRef.current.offsetHeight
+    const MIN = 20
 
     resizeStart.current = {
       mouseX: e.clientX,
@@ -175,8 +158,6 @@ export default function Element({
       origH: element.height,
     }
 
-    const MIN = 20
-
     const onMove = (ev) => {
       const dx = ev.clientX - resizeStart.current.mouseX
       const dy = ev.clientY - resizeStart.current.mouseY
@@ -185,22 +166,15 @@ export default function Element({
 
       if (direction.includes('e')) newW = Math.max(MIN, origW + dx)
       if (direction.includes('s')) newH = Math.max(MIN, origH + dy)
-      if (direction.includes('w')) {
-        newW = Math.max(MIN, origW - dx)
-        newX = origX + (origW - newW)
-      }
-      if (direction.includes('n')) {
-        newH = Math.max(MIN, origH - dy)
-        newY = origY + (origH - newH)
-      }
+      if (direction.includes('w')) { newW = Math.max(MIN, origW - dx); newX = origX + (origW - newW) }
+      if (direction.includes('n')) { newH = Math.max(MIN, origH - dy); newY = origY + (origH - newH) }
 
-      // Clamp
       newX = Math.max(0, newX)
       newY = Math.max(0, newY)
       if (newX + newW > canvasW) newW = canvasW - newX
       if (newY + newH > canvasH) newH = canvasH - newY
 
-      const snapped = getSnapPosition(newX, newY)
+      const snapped = getSnap(newX, newY)
       onUpdate(element.id, { x: snapped.x, y: snapped.y, width: Math.round(newW), height: Math.round(newH) })
     }
 
@@ -214,45 +188,24 @@ export default function Element({
     window.addEventListener('mouseup', onUp)
   }
 
-  const handleContextMenu = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    onContextMenu(e, element.id)
-  }
-
   return (
     <div
       className={`canvas-element${isSelected ? ' selected' : ''}`}
-      style={{
-        left: element.x,
-        top: element.y,
-        width: element.width,
-        height: element.height,
-        zIndex: element.zIndex,
-      }}
+      style={{ left: element.x, top: element.y, width: element.width, height: element.height, zIndex: element.zIndex }}
       onMouseDown={handleMouseDown}
-      onContextMenu={handleContextMenu}
+      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onContextMenu(e, element.id) }}
     >
-      {/* Hover border */}
       <div className="element-hover-border" />
 
-      {/* Content */}
       {element.type === 'rect' && <RectContent element={element} />}
-      {element.type === 'text' && (
-        <TextContent element={element} isSelected={isSelected} onTextChange={onTextChange} />
-      )}
+      {element.type === 'text' && <TextContent element={element} isSelected={isSelected} onTextChange={onTextChange} />}
       {element.type === 'image' && <ImageContent element={element} />}
 
-      {/* Selection handles */}
       {isSelected && (
         <>
           <div className="selection-outline" />
           {HANDLES.map((dir) => (
-            <div
-              key={dir}
-              className={`resize-handle ${dir}`}
-              onMouseDown={(e) => handleResizeMouseDown(e, dir)}
-            />
+            <div key={dir} className={`resize-handle ${dir}`} onMouseDown={(e) => handleResizeMouseDown(e, dir)} />
           ))}
         </>
       )}

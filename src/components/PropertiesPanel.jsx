@@ -1,6 +1,6 @@
 import React, { useRef } from 'react'
 
-function NumInput({ label, value, onChange, min = 0, max = 9999, suffix = '' }) {
+function NumInput({ label, value, onChange, min = 0, max = 9999 }) {
   return (
     <div className="props-field">
       <span className="props-field-label">{label}</span>
@@ -18,8 +18,8 @@ function NumInput({ label, value, onChange, min = 0, max = 9999, suffix = '' }) 
 }
 
 export default function PropertiesPanel({ element, onUpdate }) {
-  const colorInputRef = useRef()
-  const strokeInputRef = useRef()
+  const fillRef = useRef()
+  const strokeRef = useRef()
 
   if (!element) {
     return (
@@ -37,7 +37,6 @@ export default function PropertiesPanel({ element, onUpdate }) {
 
   return (
     <div className="right-panel">
-      {/* Position & Size */}
       <div className="props-section">
         <div className="props-section-title">Position</div>
         <div className="props-row-2">
@@ -54,27 +53,17 @@ export default function PropertiesPanel({ element, onUpdate }) {
         </div>
       </div>
 
-      {/* Fill / Color */}
       {(element.type === 'rect' || element.type === 'text') && (
         <div className="props-section">
-          <div className="props-section-title">
-            {element.type === 'rect' ? 'Fill' : 'Color'}
-          </div>
+          <div className="props-section-title">{element.type === 'rect' ? 'Fill' : 'Color'}</div>
           <div className="color-row">
             <div
               className="color-swatch"
-              style={{ background: element.fill || (element.type === 'rect' ? 'rgba(124,106,247,0.25)' : '#f0f0f4') }}
-              onClick={() => colorInputRef.current?.click()}
+              style={{ background: element.fill || (element.type === 'rect' ? '#7c6af7' : '#f0f0f4') }}
+              onClick={() => fillRef.current?.click()}
             />
-            <input
-              ref={colorInputRef}
-              type="color"
-              defaultValue={element.fill || '#7c6af7'}
-              onChange={(e) => onUpdate(element.id, { fill: e.target.value })}
-            />
-            <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-              {element.fill || 'default'}
-            </span>
+            <input ref={fillRef} type="color" defaultValue={element.fill || '#7c6af7'} onChange={(e) => onUpdate(element.id, { fill: e.target.value })} />
+            <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>{element.fill || 'default'}</span>
           </div>
 
           {element.type === 'rect' && (
@@ -83,24 +72,15 @@ export default function PropertiesPanel({ element, onUpdate }) {
               <div className="color-row">
                 <div
                   className="color-swatch"
-                  style={{ background: element.stroke || 'rgba(124,106,247,0.6)' }}
-                  onClick={() => strokeInputRef.current?.click()}
+                  style={{ background: element.stroke || '#7c6af7' }}
+                  onClick={() => strokeRef.current?.click()}
                 />
-                <input
-                  ref={strokeInputRef}
-                  type="color"
-                  defaultValue={element.stroke || '#7c6af7'}
-                  onChange={(e) => onUpdate(element.id, { stroke: e.target.value })}
-                />
+                <input ref={strokeRef} type="color" defaultValue={element.stroke || '#7c6af7'} onChange={(e) => onUpdate(element.id, { stroke: e.target.value })} />
               </div>
-
               <div className="props-section-title" style={{ marginTop: 12 }}>Corner Radius</div>
               <input
-                type="number"
-                className="props-input"
-                value={element.borderRadius ?? 4}
-                min={0}
-                max={100}
+                type="number" className="props-input"
+                value={element.borderRadius ?? 4} min={0} max={100}
                 onChange={(e) => onUpdate(element.id, { borderRadius: Number(e.target.value) })}
                 onMouseDown={(e) => e.stopPropagation()}
               />
@@ -111,11 +91,8 @@ export default function PropertiesPanel({ element, onUpdate }) {
             <>
               <div className="props-section-title" style={{ marginTop: 12 }}>Font Size</div>
               <input
-                type="number"
-                className="props-input"
-                value={element.fontSize || 14}
-                min={8}
-                max={120}
+                type="number" className="props-input"
+                value={element.fontSize || 14} min={8} max={120}
                 onChange={(e) => onUpdate(element.id, { fontSize: Number(e.target.value) })}
                 onMouseDown={(e) => e.stopPropagation()}
               />
@@ -124,7 +101,6 @@ export default function PropertiesPanel({ element, onUpdate }) {
         </div>
       )}
 
-      {/* Layer order */}
       <div className="props-section">
         <div className="props-section-title">Layer</div>
         <NumInput label="Z" value={element.zIndex} min={0} max={999} onChange={(v) => onUpdate(element.id, { zIndex: v })} />

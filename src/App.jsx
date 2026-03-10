@@ -7,63 +7,24 @@ import './styles/canvas.css'
 
 const CANVAS_W = 900
 const CANVAS_H = 600
-
 let nextId = 1
 
-const ELEMENT_DEFAULTS = {
+const DEFAULTS = {
   rect:  { width: 160, height: 100, fill: '#7c6af7', stroke: '#9d90ff', borderRadius: 6 },
   text:  { width: 180, height: 60,  fill: '#f0f0f4', fontSize: 18, content: 'Text' },
   image: { width: 180, height: 140 },
 }
 
 function makeElement(type, maxZ) {
-  const defs = ELEMENT_DEFAULTS[type]
+  const d = DEFAULTS[type]
   return {
     id: `el-${nextId++}`,
     type,
-    x: Math.round((CANVAS_W - defs.width) / 2),
-    y: Math.round((CANVAS_H - defs.height) / 2),
+    x: Math.round((CANVAS_W - d.width) / 2),
+    y: Math.round((CANVAS_H - d.height) / 2),
     zIndex: maxZ + 1,
-    ...defs,
+    ...d,
   }
-}
-
-function Logo() {
-  return (
-    <svg viewBox="0 0 26 26" fill="none">
-      <rect x="1" y="1" width="10" height="10" rx="2.5" fill="#7c6af7"/>
-      <rect x="15" y="1" width="10" height="10" rx="2.5" fill="#9d90ff" opacity="0.7"/>
-      <rect x="1" y="15" width="10" height="10" rx="2.5" fill="#9d90ff" opacity="0.7"/>
-      <rect x="15" y="15" width="10" height="10" rx="2.5" fill="#7c6af7" opacity="0.4"/>
-    </svg>
-  )
-}
-
-function ExportIcon() {
-  return (
-    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="M7 9V2M4 6l3 3 3-3"/>
-      <path d="M2 10v1a1 1 0 001 1h8a1 1 0 001-1v-1"/>
-    </svg>
-  )
-}
-
-function SnapIcon() {
-  return (
-    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="M1 7h12M7 1v12"/>
-      <circle cx="7" cy="7" r="2"/>
-    </svg>
-  )
-}
-
-function DuplicateIcon() {
-  return (
-    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <rect x="5" y="5" width="8" height="8" rx="1"/>
-      <path d="M3 9H2a1 1 0 01-1-1V2a1 1 0 011-1h6a1 1 0 011 1v1"/>
-    </svg>
-  )
 }
 
 export default function App() {
@@ -73,7 +34,6 @@ export default function App() {
   const [toast, setToast] = useState({ msg: '', visible: false })
   const [contextMenu, setContextMenu] = useState(null)
   const toastTimer = useRef(null)
-  const canvasExportRef = useRef(null)
 
   const showToast = (msg) => {
     if (toastTimer.current) clearTimeout(toastTimer.current)
@@ -97,7 +57,7 @@ export default function App() {
   const deleteElement = useCallback((id) => {
     setElements(prev => prev.filter(el => el.id !== id))
     setSelectedId(prev => prev === id ? null : prev)
-    showToast('Element deleted')
+    showToast('Deleted')
   }, [])
 
   const duplicateElement = useCallback((id) => {
@@ -120,7 +80,7 @@ export default function App() {
   }, [maxZ])
 
   const sendToBack = useCallback((id) => {
-    const minZ = Math.min(...elements.map(e => e.zIndex))
+    const minZ = elements.length > 0 ? Math.min(...elements.map(e => e.zIndex)) : 0
     setElements(prev => prev.map(el => el.id === id ? { ...el, zIndex: minZ - 1 } : el))
   }, [elements])
 
@@ -141,23 +101,6 @@ export default function App() {
 
   const closeContextMenu = () => setContextMenu(null)
 
-  // Export canvas as PNG using html2canvas-like approach (DOM screenshot)
-  const exportCanvas = async () => {
-    try {
-      const { default: html2canvas } = await import('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.esm.min.js')
-      const el = document.querySelector('.canvas-frame')
-      if (!el) return
-      const canvas = await html2canvas(el, { backgroundColor: '#1a1a22', scale: 2 })
-      const link = document.createElement('a')
-      link.download = 'canvas-export.png'
-      link.href = canvas.toDataURL('image/png')
-      link.click()
-      showToast('Exported as PNG!')
-    } catch {
-      showToast('Export: use browser screenshot for now')
-    }
-  }
-
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e) => {
@@ -166,22 +109,18 @@ export default function App() {
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
         deleteElement(selectedId)
       }
-
       if (e.key === 'd' && (e.ctrlKey || e.metaKey) && selectedId) {
         e.preventDefault()
         duplicateElement(selectedId)
       }
-
       if (e.key === 'Escape') {
         setSelectedId(null)
         closeContextMenu()
       }
-
-      // Arrow key nudge
       if (selectedId && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
         e.preventDefault()
         const step = e.shiftKey ? 10 : 1
-        const map = { ArrowUp: [0,-step], ArrowDown: [0,step], ArrowLeft: [-step,0], ArrowRight: [step,0] }
+        const map = { ArrowUp:[0,-step], ArrowDown:[0,step], ArrowLeft:[-step,0], ArrowRight:[step,0] }
         const [dx, dy] = map[e.key]
         setElements(prev => prev.map(el => {
           if (el.id !== selectedId) return el
@@ -204,7 +143,12 @@ export default function App() {
       {/* TOP BAR */}
       <div className="topbar">
         <div className="topbar-logo">
-          <Logo />
+          <svg viewBox="0 0 26 26" fill="none" width="26" height="26">
+            <rect x="1" y="1" width="10" height="10" rx="2.5" fill="#7c6af7"/>
+            <rect x="15" y="1" width="10" height="10" rx="2.5" fill="#9d90ff" opacity="0.7"/>
+            <rect x="1" y="15" width="10" height="10" rx="2.5" fill="#9d90ff" opacity="0.7"/>
+            <rect x="15" y="15" width="10" height="10" rx="2.5" fill="#7c6af7" opacity="0.4"/>
+          </svg>
           <span className="topbar-logo-name">Canvas</span>
           <span className="topbar-logo-tag">beta</span>
         </div>
@@ -213,38 +157,28 @@ export default function App() {
         <div className="topbar-right">
           <button
             className={`topbar-action-btn${snapToGrid ? ' primary' : ''}`}
-            onClick={() => { setSnapToGrid(s => !s); showToast(snapToGrid ? 'Snap off' : 'Snap to grid on') }}
-            title="Toggle snap to grid"
+            onClick={() => { setSnapToGrid(s => !s); showToast(snapToGrid ? 'Snap off' : 'Snap on') }}
           >
-            <SnapIcon />
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" width="13" height="13">
+              <path d="M7 2v8M4 5l3-3 3 3"/><path d="M2 10v1a1 1 0 001 1h8a1 1 0 001-1v-1"/>
+            </svg>
             Snap {snapToGrid ? 'On' : 'Off'}
           </button>
           {selectedId && (
-            <button
-              className="topbar-action-btn"
-              onClick={() => duplicateElement(selectedId)}
-              title="Duplicate (Ctrl+D)"
-            >
-              <DuplicateIcon />
+            <button className="topbar-action-btn" onClick={() => duplicateElement(selectedId)}>
+              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" width="13" height="13">
+                <rect x="5" y="5" width="8" height="8" rx="1"/>
+                <path d="M3 9H2a1 1 0 01-1-1V2a1 1 0 011-1h6a1 1 0 011 1v1"/>
+              </svg>
               Duplicate
             </button>
           )}
-          <button className="topbar-action-btn" onClick={exportCanvas} title="Export as PNG">
-            <ExportIcon />
-            Export
-          </button>
         </div>
       </div>
 
       {/* MAIN */}
       <div className="main-area">
-        <LayersPanel
-          elements={elements}
-          selectedId={selectedId}
-          onSelect={handleSelect}
-          onDelete={deleteElement}
-        />
-
+        <LayersPanel elements={elements} selectedId={selectedId} onSelect={handleSelect} onDelete={deleteElement} />
         <Canvas
           elements={elements}
           selectedId={selectedId}
@@ -255,68 +189,52 @@ export default function App() {
           snapToGrid={snapToGrid}
           onContextMenu={handleContextMenu}
         />
-
-        <PropertiesPanel
-          element={selectedElement}
-          onUpdate={updateElement}
-        />
+        <PropertiesPanel element={selectedElement} onUpdate={updateElement} />
       </div>
 
       {/* STATUS BAR */}
       <div className="status-bar">
-        <div className="status-item">
-          <div className="status-dot" />
-          Ready
-        </div>
-        <div className="status-item">
-          {elements.length} element{elements.length !== 1 ? 's' : ''}
-        </div>
+        <div className="status-item"><div className="status-dot" />Ready</div>
+        <div className="status-item">{elements.length} element{elements.length !== 1 ? 's' : ''}</div>
         {selectedElement && (
           <div className="status-item">
             {selectedElement.type} · {Math.round(selectedElement.x)},{Math.round(selectedElement.y)} · {Math.round(selectedElement.width)}×{Math.round(selectedElement.height)}
           </div>
         )}
         <div className="status-item" style={{ marginLeft: 'auto' }}>
-          <span className="kbd">Del</span>&nbsp;delete &nbsp;
-          <span className="kbd">⌘D</span>&nbsp;duplicate &nbsp;
+          <span className="kbd">Del</span>&nbsp;delete&nbsp;&nbsp;
+          <span className="kbd">⌘D</span>&nbsp;duplicate&nbsp;&nbsp;
           <span className="kbd">↑↓←→</span>&nbsp;nudge
         </div>
       </div>
 
       {/* CONTEXT MENU */}
       {contextMenu && (
-        <div
-          className="context-menu"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
-          onClick={(e) => e.stopPropagation()}
-        >
+        <div className="context-menu" style={{ left: contextMenu.x, top: contextMenu.y }} onClick={(e) => e.stopPropagation()}>
           <button className="context-menu-item" onClick={() => { duplicateElement(contextMenu.id); closeContextMenu() }}>
-            <DuplicateIcon /> Duplicate
-            <span className="context-menu-shortcut">⌘D</span>
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" width="13" height="13">
+              <rect x="5" y="5" width="8" height="8" rx="1"/><path d="M3 9H2a1 1 0 01-1-1V2a1 1 0 011-1h6a1 1 0 011 1v1"/>
+            </svg>
+            Duplicate <span className="context-menu-shortcut">⌘D</span>
           </button>
           <button className="context-menu-item" onClick={() => { bringToFront(contextMenu.id); closeContextMenu() }}>
-            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" width="13" height="13">
               <path d="M7 2v8M4 5l3-3 3 3"/>
-              <rect x="2" y="10" width="10" height="2" rx="1" fill="currentColor" stroke="none"/>
             </svg>
             Bring to Front
           </button>
           <button className="context-menu-item" onClick={() => { sendToBack(contextMenu.id); closeContextMenu() }}>
-            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" width="13" height="13">
               <path d="M7 12V4M4 9l3 3 3-3"/>
-              <rect x="2" y="2" width="10" height="2" rx="1" fill="currentColor" stroke="none"/>
             </svg>
             Send to Back
           </button>
           <div className="context-menu-divider" />
           <button className="context-menu-item danger" onClick={() => { deleteElement(contextMenu.id); closeContextMenu() }}>
-            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <polyline points="2 3.5 12 3.5"/>
-              <path d="M5 3.5V2.5h4v1"/>
-              <path d="M3 3.5l.8 8h6.4l.8-8"/>
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" width="13" height="13">
+              <polyline points="2 3.5 12 3.5"/><path d="M5 3.5V2.5h4v1"/><path d="M3 3.5l.8 8h6.4l.8-8"/>
             </svg>
-            Delete
-            <span className="context-menu-shortcut">Del</span>
+            Delete <span className="context-menu-shortcut">Del</span>
           </button>
         </div>
       )}
